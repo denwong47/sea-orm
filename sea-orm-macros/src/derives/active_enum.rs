@@ -2,6 +2,11 @@ use heck::CamelCase;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, quote_spanned};
 use syn::{parse, punctuated::Punctuated, token::Comma, Expr, Lit, LitInt, LitStr, Meta, UnOp};
+use syn::{
+    // syn parsing feature
+    parse_str,
+};
+use unicode_ident;
 
 enum Error {
     InputNotEnum,
@@ -247,10 +252,59 @@ impl ActiveEnum {
             let enum_variants: Vec<syn::Ident> = str_variants
                 .iter()
                 .map(|v| {
-                    if v.chars().next().map(char::is_numeric).unwrap_or(false) {
-                        format_ident!("_{}", v)
+                    // string_value will be CamelCased and become an identifier in
+                    // {Enum}Variant.
+                    // However Rust only allows for XID_Start char followed by
+                    // XID_Continue characters as identifiers; this causes a few
+                    // problems:
+                    //
+                    // - string_value = "" will cause a panic;
+                    // - string_value containing only non-alphanumerics will become ""
+                    //   and cause the above panic;
+                    // - string_values:
+                    //      - "AB"
+                    //      - "A B"
+                    //      - "A  B"
+                    //      - "A_B"
+                    //      - "A_ B"
+                    //   shares the same identifier of "AB";
+
+                    // What this does NOT address
+                    // - case-sensitivity. String value "ABC" and "abc" remains
+                    //   conflicted after .camel_case().
+                    
+                    let additional_chars_to_replace: [char; 2] = ['_', ' '];
+
+                    let v_cleaned =    v.chars()
+                                        .into_iter()
+                                        .enumerate()
+                                        .map(
+                                            | (pos, char_) | {
+                                                if  !additional_chars_to_replace.contains(&char_)
+                                                    && match pos {
+                                                        0 => unicode_ident::is_xid_start(char_) ,
+                                                        _ => unicode_ident::is_xid_continue(char_),
+                                                    } {
+                                                        char_.to_string()
+                                                    } else {
+                                                        format!("{:#X}", char_ as u32)
+                                                    }
+                                            }
+                                        )
+                                        .reduce(
+                                            | lhs, rhs | {
+                                                lhs + rhs.as_str()
+                                            }
+                                        )
+                                        .unwrap_or(String::from("__Empty")) // if string_value is ""
+                                        .to_camel_case();
+                    
+                    if v_cleaned.len() == 0
+                       || v_cleaned.chars().next().map(char::is_numeric).unwrap_or(false) 
+                       || parse_str::<Expr>(&v_cleaned).is_err() {
+                        format_ident!("_{}", v_cleaned)
                     } else {
-                        format_ident!("{}", v.to_camel_case())
+                        format_ident!("{}", v_cleaned)
                     }
                 })
                 .collect();
