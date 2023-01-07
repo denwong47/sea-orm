@@ -2,10 +2,6 @@ use heck::CamelCase;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, quote_spanned};
 use syn::{parse, punctuated::Punctuated, token::Comma, Expr, Lit, LitInt, LitStr, Meta, UnOp};
-use syn::{
-    // syn parsing feature
-    parse_str,
-};
 use unicode_ident;
 
 enum Error {
@@ -296,12 +292,12 @@ impl ActiveEnum {
                                                 lhs + rhs.as_str()
                                             }
                                         )
-                                        .unwrap_or(String::from("__Empty")) // if string_value is ""
-                                        .to_camel_case();
+                                        .map_or(
+                                            String::from("__Empty"), // if string_value is ""
+                                            |s| s.to_camel_case(),
+                                        );
                     
-                    if v_cleaned.len() == 0
-                       || v_cleaned.chars().next().map(char::is_numeric).unwrap_or(false) 
-                       || parse_str::<Expr>(&v_cleaned).is_err() {
+                    if v_cleaned.chars().next().map(char::is_numeric).unwrap_or(false)  {
                         format_ident!("_{}", v_cleaned)
                     } else {
                         format_ident!("{}", v_cleaned)
