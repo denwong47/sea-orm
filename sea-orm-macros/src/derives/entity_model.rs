@@ -195,11 +195,14 @@ pub fn expand_derive_entity_model(data: Data, attrs: Vec<Attribute>) -> syn::Res
                         }
                     }
 
+                    println!("enum_name {:?}", enum_name);
+                    
                     if let Some(enum_name) = enum_name {
                         field_name = enum_name;
                     }
 
                     field_name = Ident::new(&escape_rust_keyword(field_name), Span::call_site());
+                    println!("field_name {:?}", field_name);
 
                     let variant_attrs = match &column_name {
                         Some(column_name) => quote! {

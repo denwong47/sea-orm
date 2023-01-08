@@ -84,8 +84,8 @@ pub fn impl_col_from_str(ident: &Ident, data: &Data) -> syn::Result<TokenStream>
 
     let columns = data_enum.variants.iter().map(|column| {
         let column_iden = column.ident.clone();
-        let column_str_snake = column_iden.to_string().to_snake_case() + "_SnakeCase";
-        let column_str_mixed = column_iden.to_string().to_mixed_case() + "_MixedCase";
+        let column_str_snake = column_iden.to_string().to_snake_case();
+        let column_str_mixed = column_iden.to_string().to_mixed_case();
         quote!(
             #column_str_snake | #column_str_mixed => Ok(#ident::#column_iden)
         )
