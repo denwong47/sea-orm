@@ -1,5 +1,4 @@
-
-use crate::util::camel_case_with_escaped_non_xid;
+use crate::util::camel_case_with_escaped_non_uax31;
 use heck::ToUpperCamelCase;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, quote_spanned};
